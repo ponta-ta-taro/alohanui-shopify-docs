@@ -1,0 +1,336 @@
+# Cursor AI ルール：アロハ縫 Shopify プロジェクト
+
+## プロジェクト概要
+このプロジェクトは、わんこ用アロハシャツ専門店「アロハ縫茅ヶ崎」のShopify ECサイトリニューアルです。
+
+## 必須の作業フロー
+
+### 実装開始前に必ず確認すること
+1. **HANDOVER.md を読む**: 現在の進捗状況と次のステップを確認
+2. **該当するプロンプトを読む**: `docs/prompts/` から該当項目のプロンプトを読み込む
+3. **対象ファイルの確認**: 編集するファイルを事前に特定
+
+### 実装中
+1. **段階的に進める**: 一度に多くを変更しない
+2. **コメントを書く**: 重要な処理には日本語でコメント
+3. **テストを忘れずに**: 変更後は必ずローカルプレビューで確認
+
+### 実装後
+1. **implementation-log.md に記録**: 何をしたか、気づいたことを記録
+2. **確認ポイントをチェック**: プロンプトの確認リストを実施
+
+## Shopify Liquid 開発ルール
+
+### ファイル構成の理解
+```
+├── layout/
+│   └── theme.liquid          # 全ページ共通のレイアウト
+├── templates/
+│   ├── index.json            # トップページ
+│   ├── product.json          # 商品ページ
+│   └── collection.json       # コレクションページ
+├── sections/
+│   ├── header.liquid         # ヘッダー
+│   ├── footer.liquid         # フッター
+│   └── main-product.liquid   # 商品ページメインセクション
+├── snippets/
+│   └── (再利用可能なコンポーネント)
+└── assets/
+    ├── base.css              # 基本スタイル
+    ├── section-*.css         # セクション別スタイル
+    └── component-*.css       # コンポーネント別スタイル
+```
+
+### Liquid コーディング規約
+
+#### 1. セクションベース開発
+- 機能ごとにセクションで分割
+- セクションは独立して動作するように設計
+- 再利用可能な部品は snippet に切り出し
+
+#### 2. 変数命名
+```liquid
+{% comment %} 良い例 {% endcomment %}
+{% assign product_title = product.title %}
+{% assign button_text = 'カートに追加' %}
+
+{% comment %} 悪い例 {% endcomment %}
+{% assign pt = product.title %}
+{% assign btn = 'カートに追加' %}
+```
+
+#### 3. コメント
+```liquid
+{% comment %}
+  購入ボタンのセクション
+  - Sticky対応でモバイル時は画面下部に固定
+  - 在庫切れ時は「入荷待ち」表示
+{% endcomment %}
+```
+
+#### 4. 条件分岐は明確に
+```liquid
+{% comment %} 良い例 {% endcomment %}
+{% if product.available %}
+  <button type="submit">カートに追加</button>
+{% else %}
+  <button disabled>在庫切れ</button>
+{% endif %}
+```
+
+### CSS コーディング規約（BEM方式）
+
+#### 1. BEM命名規則
+```css
+/* Block: 独立したコンポーネント */
+.product-card { }
+
+/* Element: ブロックの構成要素 */
+.product-card__image { }
+.product-card__title { }
+.product-card__price { }
+
+/* Modifier: バリエーション */
+.product-card--featured { }
+.button--primary { }
+.button--large { }
+```
+
+#### 2. 具体例
+```css
+/* 商品ページの購入ボタン */
+.product-buy-button {
+  /* Block */
+}
+
+.product-buy-button__text {
+  /* Element: ボタンテキスト */
+}
+
+.product-buy-button--sticky {
+  /* Modifier: Sticky状態 */
+  position: fixed;
+  bottom: 0;
+}
+```
+
+#### 3. スコープを明確に
+```css
+/* セクション専用のスタイルは section- prefix */
+.section-product-main { }
+
+/* コンポーネント共通スタイルは component- prefix */
+.component-button { }
+
+/* ユーティリティは u- prefix */
+.u-text-center { }
+.u-mt-20 { }
+```
+
+### レスポンシブ対応
+
+#### ブレークポイント
+```css
+/* モバイル: デフォルト */
+.button {
+  font-size: 14px;
+  padding: 12px 24px;
+}
+
+/* タブレット: 750px以上 */
+@media screen and (min-width: 750px) {
+  .button {
+    font-size: 16px;
+  }
+}
+
+/* デスクトップ: 990px以上 */
+@media screen and (min-width: 990px) {
+  .button {
+    font-size: 18px;
+    padding: 16px 32px;
+  }
+}
+```
+
+#### モバイルファースト
+- デフォルトスタイルはモバイル向け
+- メディアクエリで大画面に対応
+- タッチ操作を考慮（最小タップサイズ: 44x44px）
+
+## JavaScript ガイドライン
+
+### 1. バニラJSを優先
+- jQueryは使わない（Shopify標準）
+- 必要最小限の実装
+- パフォーマンスを常に意識
+
+### 2. イベント処理
+```javascript
+// 良い例: イベント委譲
+document.querySelector('.product-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  // カート追加処理
+});
+
+// 悪い例: 個別にリスナー追加
+document.querySelectorAll('.button').forEach(btn => {
+  btn.addEventListener('click', handleClick);
+});
+```
+
+### 3. 非同期処理
+```javascript
+// Fetch API を使用
+async function addToCart(variantId) {
+  try {
+    const response = await fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: variantId, quantity: 1 })
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('カート追加エラー:', error);
+  }
+}
+```
+
+## パフォーマンス最適化
+
+### 1. 画像最適化
+- WebP形式を優先使用
+- 遅延読み込み（lazy loading）を活用
+- 適切なサイズで提供（srcset）
+
+```liquid
+<img
+  srcset="{{ product.featured_image | image_url: width: 375 }} 375w,
+          {{ product.featured_image | image_url: width: 750 }} 750w,
+          {{ product.featured_image | image_url: width: 1100 }} 1100w"
+  src="{{ product.featured_image | image_url: width: 750 }}"
+  loading="lazy"
+  alt="{{ product.featured_image.alt }}"
+>
+```
+
+### 2. CSS/JS 最適化
+- 不要なコードは削除
+- ファイルを適切に分割
+- クリティカルCSSはインライン化検討
+
+### 3. アプリは最小限に
+- 本当に必要なアプリのみ導入
+- 定期的にアプリのパフォーマンス影響を確認
+
+## セキュリティとベストプラクティス
+
+### 1. ユーザー入力の扱い
+```liquid
+{% comment %} エスケープを忘れずに {% endcomment %}
+{{ product.title | escape }}
+{{ customer.name | escape }}
+```
+
+### 2. 本番環境への配慮
+- **絶対に本番ストアに直接pushしない**
+- 必ず開発ストア（alohanui-demo）でテスト
+- 本番デプロイは unpublished で push し、管理画面で公開
+
+### 3. バックアップ
+- 重要な変更前はテーマをダウンロード
+- Git管理を検討（今後の課題）
+
+## デバッグとトラブルシューティング
+
+### Liquid デバッグ
+```liquid
+{% comment %} 変数の内容を確認 {% endcomment %}
+<pre>{{ product | json }}</pre>
+
+{% comment %} 条件分岐のデバッグ {% endcomment %}
+{% if product.available %}
+  <p>在庫あり</p>
+{% else %}
+  <p>在庫なし: {{ product.variants.first.inventory_quantity }}</p>
+{% endif %}
+```
+
+### ブラウザコンソール活用
+- Chrome DevTools を活用
+- エラーメッセージを必ず確認
+- ネットワークタブでAPI通信を監視
+
+## AI への指示の出し方（推奨）
+
+### 良い指示の例
+```
+タスク: 商品ページの購入ボタンを改善
+
+参考: docs/prompts/01-cta-button.md を確認してください
+
+対象ファイル:
+- sections/main-product.liquid
+- assets/component-product.css
+
+確認したいこと:
+- 現在のボタンのHTMLとCSS
+- Gensparkマニュアルの該当部分
+
+実装後:
+- モバイルとデスクトップで確認
+- ホバーアニメーションの動作確認
+```
+
+### 悪い指示の例
+```
+ボタンをかっこよくして
+```
+
+## プロジェクト固有のルール
+
+### 1. 日本語対応
+- すべてのユーザー向けテキストは日本語
+- コメントは日本語OK
+- 変数名・クラス名は英語
+
+### 2. ブランドカラー
+```css
+:root {
+  --color-coral: #FF6B6B;        /* メインカラー: コーラル */
+  --color-coral-light: #FF8E8E;  /* ライトコーラル */
+  --color-ocean: #4ECDC4;        /* アクセント: オーシャン */
+  --color-warm: #FFF4E6;         /* 背景: ウォームベージュ */
+  --color-text: #2C3E50;         /* テキスト: ダークグレー */
+}
+```
+
+### 3. トーン＆マナー
+- 温かみのある、親しみやすい表現
+- わんこへの愛情が伝わる
+- 押し付けがましくない、自然な提案
+
+### 4. アクセシビリティ
+- 代替テキストは必須
+- フォーカス状態を明確に
+- キーボード操作に対応
+
+## 禁止事項
+
+❌ 本番ストア（alohanui.jp）への直接編集  
+❌ ドキュメントなしの大規模な変更  
+❌ テストなしのデプロイ  
+❌ 不要なアプリの乱用  
+❌ 過度な装飾（シンプルさを保つ）  
+❌ パフォーマンスを無視した実装  
+
+## 参考リソース
+
+- **Shopify Liquid リファレンス**: https://shopify.dev/docs/themes/liquid/reference
+- **Dawn テーマ**: https://github.com/Shopify/dawn
+- **Shopify セクションドキュメント**: https://shopify.dev/docs/themes/architecture/sections
+
+---
+
+**このルールは必ず守ってください。不明点があれば HANDOVER.md を確認するか、質問してください。**
