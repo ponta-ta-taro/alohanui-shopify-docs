@@ -178,6 +178,67 @@ shopify theme info
 ### 重要な決定事項
 大きな方針変更は `docs/decisions.md` に記録してください。
 
+## 🤖 Claude Projects との連携
+
+このプロジェクトは Claude Projects と連携して、スレッド間で文脈を保持します。
+
+### 初回セットアップ（1回のみ）
+
+#### 1. GitHubリポジトリの準備
+このリポジトリは既に公開されています：  
+**https://github.com/ponta-ta-taro/alohanui-shopify-docs**
+
+#### 2. Claude Projects の作成
+1. Claude の左サイドバーから「Projects」をクリック
+2. 「New Project」をクリック
+3. プロジェクト名：`アロハ縫 Shopify`
+4. 「Create Project」をクリック
+
+#### 3. Project Knowledge へファイルを追加
+1. プロジェクト画面で「Add content」→「From GitHub」をクリック
+2. リポジトリを選択：`ponta-ta-taro/alohanui-shopify-docs`
+3. 以下のファイルを**すべて**選択：
+   - ✅ HANDOVER.md
+   - ✅ PROJECT_CONTEXT.md
+   - ✅ README.md
+   - ✅ STATUS.md
+   - ✅ .cursorrules
+   - ✅ docs/ フォルダ（プロンプトファイル含む）
+4. 「ファイルを追加」をクリック
+
+### 日常的な使い方
+
+#### 新しいチャットを開始する時
+```
+アロハ縫の続きやります。
+今日はPhase 1-①のCTAボタン改善から。
+```
+
+Claude が自動的に Project Knowledge を参照し、文脈を理解した状態で応答します。
+
+#### STATUS.md を更新した時
+1. ローカルで STATUS.md を編集
+2. Git コミット＆プッシュ：
+```bash
+git add STATUS.md
+git commit -m "update: 作業進捗を更新"
+git push origin main
+```
+3. Claude Projects で「Refresh」（自動同期の場合は不要）
+
+### Project Knowledge に含まれる情報
+- プロジェクト全体像（目的、KPI、戦略）
+- 現在の進捗状況（STATUS.md）
+- 実装ガイド（プロンプトファイル）
+- コーディング規約（.cursorrules）
+- 環境構成（HANDOVER.md）
+
+### メリット
+- ✅ 新しいチャットでも文脈が継続
+- ✅ 毎回ファイルをアップロード不要
+- ✅ ドキュメントが常に最新（Git経由）
+- ✅ 複数人での作業に対応可能
+
 ## 🆘 トラブルシューティング
 
 ### Shopify CLI が動かない
